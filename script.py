@@ -31,7 +31,7 @@ def search_rule34_api(keyword, num_images):
             response = requests.get(url)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
-            console.print(f"[red]Search error: {e}")
+            console.print(f"[red]Search error for '{keyword}': {e}")
             return []
         
         progress.update(task, completed=50)
@@ -44,24 +44,28 @@ def search_rule34_api(keyword, num_images):
                 break
             image_url = post.get('file_url')
             if image_url:
-                image_urls.append(image_url)
+                image_urls.append((keyword, image_url))
                 
         progress.update(task, completed=100)
         
     return image_urls
 
-def get_keyword_from_file(filename):
+def get_keywords_from_file(filename):
     if not os.path.isfile(filename):
         raise FileNotFoundError(f"[red]File '{filename}' does not exist.")
     
     with console.status(f"[cyan]Reading file {filename}...", spinner="dots"):
         with open(filename, 'r') as file:
-            keyword = file.readline().strip()
+            keywords = [line.strip() for line in file if line.strip()]
     
-    return keyword
+    if not keywords:
+        raise ValueError("Le fichier est vide")
+        
+    console.print(f"[green]Loaded {len(keywords)} keywords from file")
+    return keywords
 
-def save_urls_to_file(urls, keyword):
-    output_file = f"urls_{keyword}.txt"
+def save_urls_to_file(urls, filename_prefix="urls"):
+    output_file = f"{filename_prefix}_combined.txt"
     
     if os.path.exists(output_file):
         if not Confirm.ask(f"File [bold]{output_file}[/bold] already exists. Do you want to overwrite it?"):
@@ -73,65 +77,94 @@ def save_urls_to_file(urls, keyword):
                     break
     
     with open(output_file, 'w') as f:
-        f.write("\n".join(urls))
+        for keyword, url in urls:
+            f.write(f"{keyword}: {url}\n")
     
     console.print(f"[green]URLs have been saved to file: [bold]{output_file}[/bold]")
 
-def display_results(keyword, urls):
+def distribute_image_count(num_keywords, total_images):
+    """Distribue équitablement le nombre d'images par mot-clé"""
+    base_count = total_images // num_keywords
+    remainder = total_images % num_keywords
+    
+    distribution = [base_count] * num_keywords
+    for i in range(remainder):
+        distribution[i] += 1
+    
+    return distribution
+
+def search_multiple_keywords(keywords, total_images):
+    distributions = distribute_image_count(len(keywords), total_images)
+    all_urls = []
+    
+    with Progress() as progress:
+        task = progress.add_task("[cyan]Searching all keywords...", total=len(keywords))
+        
+        for keyword, num_images in zip(keywords, distributions):
+            urls = search_rule34_api(keyword, num_images)
+            all_urls.extend(urls)
+            progress.advance(task)
+    
+    return all_urls
+
+def display_results(urls):
     if not urls:
         console.print(Panel(
-            f"[yellow]No images found for '[bold]{keyword}[/bold]' 😕",
+            "[yellow]No images found 😕",
             title="Results",
             border_style="yellow"
         ))
         return
 
-    console.print(f"\n[cyan]Images found for '[bold]{keyword}[/bold]':")
+    console.print("\n[cyan]Images found:")
     
-    for idx, url in enumerate(urls, 1):
+    current_keyword = None
+    for idx, (keyword, url) in enumerate(urls, 1):
+        if keyword != current_keyword:
+            console.print(f"\n[bold magenta]Keyword: {keyword}[/bold magenta]")
+            current_keyword = keyword
         console.print(f"[bold cyan]{idx}.[/bold cyan] {url}")
     
     if Confirm.ask("\nDo you want to save the URLs to a file?"):
-        save_urls_to_file(urls, keyword)
+        save_urls_to_file(urls)
 
 def main():
     create_fancy_header()
     
     parser = argparse.ArgumentParser(description="Search for images on Rule 34.")
     parser.add_argument('-k', '--keyword', type=str, help="Keyword to search for.")
-    parser.add_argument('-f', '--file', type=str, help="File containing the keyword.")
-    parser.add_argument('-n', '--num_images', type=int, help="Number of images to retrieve.")
+    parser.add_argument('-f', '--file', type=str, help="File containing the keywords.")
+    parser.add_argument('-n', '--num_images', type=int, help="Total number of images to retrieve.")
 
     args = parser.parse_args()
 
-    keyword = args.keyword
     num_images = args.num_images
 
     try:
-        if not keyword and not args.file:
-            if Confirm.ask("Do you want to use a file for the keyword?"):
+        if not args.keyword and not args.file:
+            if Confirm.ask("Do you want to use a file for keywords?"):
                 filename = Prompt.ask("Enter the filename", default="keywords.txt")
                 try:
-                    keyword = get_keyword_from_file(filename)
-                    console.print(f"[green]Keyword loaded: [bold]{keyword}[/bold]")
+                    keywords = get_keywords_from_file(filename)
                 except Exception as e:
                     console.print(f"[red]Error: {str(e)}")
                     return
             else:
-                keyword = Prompt.ask("Enter the keyword you want to search for")
+                keywords = [Prompt.ask("Enter the keyword you want to search for")]
         elif args.file:
             try:
-                keyword = get_keyword_from_file(args.file)
-                console.print(f"[green]Keyword loaded: [bold]{keyword}[/bold]")
+                keywords = get_keywords_from_file(args.file)
             except Exception as e:
                 console.print(f"[red]Error: {str(e)}")
                 return
+        else:
+            keywords = [args.keyword]
 
         if num_images is None:
-            num_images = int(Prompt.ask("How many images do you want?", default="5"))
+            num_images = int(Prompt.ask("How many images do you want in total?", default="5"))
 
-        urls = search_rule34_api(keyword, num_images)
-        display_results(keyword, urls)
+        urls = search_multiple_keywords(keywords, num_images)
+        display_results(urls)
 
     except KeyboardInterrupt:
         console.print("\n[yellow]Search cancelled by user.[/yellow]")
