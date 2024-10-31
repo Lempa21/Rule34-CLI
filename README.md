@@ -19,7 +19,7 @@ Random34 is a CLI tool that searches for images on Rule 34 using specified keywo
 To install the required packages, run:
 
 ```bash
-pip install requests rich
+pip install -r requirements.txt
 ```
 
 ## Usage
@@ -31,12 +31,6 @@ python3 script.py -k "keyword" -n 5
 ```
 
 Replace `"keyword"` with your desired search term and `5` with the number of images you want to retrieve.
-
-## Requirements
-
-- Python 3.x
-- `requests`
-- `rich`
 
 ## Contributing
 
