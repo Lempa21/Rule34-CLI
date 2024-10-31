@@ -12,7 +12,7 @@ console = Console()
 
 def create_fancy_header():
     header_text = Text()
-    header_text.append("Random34 ", style="bold cyan")
+    header_text.append("Rule34-CLI ", style="bold cyan")
     console.print(Panel(header_text, style="cyan"))
 
 def process_keyword(keyword):
