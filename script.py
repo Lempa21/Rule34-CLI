@@ -15,7 +15,12 @@ def create_fancy_header():
     header_text.append("Random34 ", style="bold cyan")
     console.print(Panel(header_text, style="cyan"))
 
+def process_keyword(keyword):
+    """Converts the keyword to lowercase and replaces spaces with underscores"""
+    return keyword.lower().replace(" ", "_")
+
 def search_rule34_api(keyword, num_images):
+    keyword = process_keyword(keyword)
     url = f"https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&tags={keyword}"
     
     with Progress(
@@ -56,7 +61,7 @@ def get_keywords_from_file(filename):
     
     with console.status(f"[cyan]Reading file {filename}...", spinner="dots"):
         with open(filename, 'r') as file:
-            keywords = [line.strip() for line in file if line.strip()]
+            keywords = [process_keyword(line.strip()) for line in file if line.strip()]
     
     if not keywords:
         raise ValueError("Le fichier est vide")
@@ -83,7 +88,7 @@ def save_urls_to_file(urls, filename_prefix="urls"):
     console.print(f"[green]URLs have been saved to file: [bold]{output_file}[/bold]")
 
 def distribute_image_count(num_keywords, total_images):
-    """Distribue équitablement le nombre d'images par mot-clé"""
+    """Distributes the number of images per keyword evenly"""
     base_count = total_images // num_keywords
     remainder = total_images % num_keywords
     
@@ -150,7 +155,7 @@ def main():
                     console.print(f"[red]Error: {str(e)}")
                     return
             else:
-                keywords = [Prompt.ask("Enter the keyword you want to search for")]
+                keywords = [process_keyword(Prompt.ask("Enter the keyword you want to search for"))]
         elif args.file:
             try:
                 keywords = get_keywords_from_file(args.file)
@@ -158,7 +163,7 @@ def main():
                 console.print(f"[red]Error: {str(e)}")
                 return
         else:
-            keywords = [args.keyword]
+            keywords = [process_keyword(args.keyword)]
 
         if num_images is None:
             num_images = int(Prompt.ask("How many images do you want in total?", default="5"))
