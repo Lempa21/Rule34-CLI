@@ -1,4 +1,4 @@
-# Rule34
+# Rule34-CLI
 
 ## Description
 
