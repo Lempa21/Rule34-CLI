@@ -1,1 +1,16 @@
-venv
+venv/
+
+__pycache__/
+
+*.log
+*.tmp
+
+.vscode/
+*.egg-info/
+
+dist/
+build/
+*.egg-info/
+*.tar.gz
+*.zip
+*.whl
