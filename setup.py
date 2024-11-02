@@ -19,8 +19,16 @@ setup(
             "rule34=rule34_cli.__main__:main",
         ],
     },
-    author="Ton Nom",
-    description="Un CLI pour rechercher des éléments sur Rule34",
-    long_description="long_description",
+   author="Lempa",
+    author_email="mempa1peu@gmail.com",
+    description="A command-line tool for searching images from rule34.xxx",
+    long_description=long_description,
     long_description_content_type="text/markdown",
+    url="https://github.com/Lempa21/Rule34-CLI",
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",  # Licence appropriée
+        "Operating System :: OS Independent",
+    ],
+    python_requires=">=3.6",
 )

@@ -1,4 +1,4 @@
-# Random34
+# Rule34
 
 ## Description
 
